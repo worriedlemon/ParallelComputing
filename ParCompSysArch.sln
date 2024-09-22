@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3labSolutionOfSysOfAlgebrai
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "4labSolOfSysOfAlgebraicEqu", "4labSolOfSysOfAlgebraicEqu\4labSolOfSysOfAlgebraicEqu.vcxproj", "{AB2AE45B-3832-40F7-9B13-4786E3295C34}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "5labSolOfSysOfAlgebrEquSpec", "5labSolOfSysOfAlgebrEquSpec\5labSolOfSysOfAlgebrEquSpec.vcxproj", "{A54A5160-E1CA-4261-B6C9-5D03047FC686}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{AB2AE45B-3832-40F7-9B13-4786E3295C34}.Release|x64.Build.0 = Release|x64
 		{AB2AE45B-3832-40F7-9B13-4786E3295C34}.Release|x86.ActiveCfg = Release|Win32
 		{AB2AE45B-3832-40F7-9B13-4786E3295C34}.Release|x86.Build.0 = Release|Win32
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Debug|x64.ActiveCfg = Debug|x64
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Debug|x64.Build.0 = Debug|x64
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Debug|x86.ActiveCfg = Debug|Win32
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Debug|x86.Build.0 = Debug|Win32
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Release|x64.ActiveCfg = Release|x64
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Release|x64.Build.0 = Release|x64
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Release|x86.ActiveCfg = Release|Win32
+		{A54A5160-E1CA-4261-B6C9-5D03047FC686}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
