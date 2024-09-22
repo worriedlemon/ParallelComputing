@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PCSA_MPI", "PCSA_MPI\PCSA_M
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "1labOperationOnMatrix", "1labOperationOnMatrix\1labOperationOnMatrix.vcxproj", "{90C46713-4B6F-4D78-8F26-AF5A5D5E179D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "2labSorting", "2labSorting\2labSorting.vcxproj", "{C8E7A622-9A89-4132-9164-2E5E4F17A526}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{90C46713-4B6F-4D78-8F26-AF5A5D5E179D}.Release|x64.Build.0 = Release|x64
 		{90C46713-4B6F-4D78-8F26-AF5A5D5E179D}.Release|x86.ActiveCfg = Release|Win32
 		{90C46713-4B6F-4D78-8F26-AF5A5D5E179D}.Release|x86.Build.0 = Release|Win32
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Debug|x64.ActiveCfg = Debug|x64
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Debug|x64.Build.0 = Debug|x64
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Debug|x86.ActiveCfg = Debug|Win32
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Debug|x86.Build.0 = Debug|Win32
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Release|x64.ActiveCfg = Release|x64
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Release|x64.Build.0 = Release|x64
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Release|x86.ActiveCfg = Release|Win32
+		{C8E7A622-9A89-4132-9164-2E5E4F17A526}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
