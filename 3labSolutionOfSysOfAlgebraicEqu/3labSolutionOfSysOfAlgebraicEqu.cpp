@@ -1,20 +1,80 @@
-// 3labSolutionOfSysOfAlgebraicEqu.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
+#include <mpi.h>
 #include <iostream>
+#include <vector>
+#include <cmath>
 
-int main()
-{
-    std::cout << "Hello World!\n";
+// Параметры задачи
+const double TOLERANCE = 1e-6; // Точность
+const int MAX_ITERATIONS = 1000; // Максимальное количество итераций
+
+// Функция для решения СЛАУ методом Зейделя
+void gauss_seidel_parallel(const std::vector<std::vector<double>>& A, const std::vector<double>& b, std::vector<double>& x, int rank, int size) {
+    int N = A.size();
+    int local_start = rank * N / size;   // Начало области, обрабатываемой процессом
+    int local_end = (rank + 1) * N / size; // Конец области, обрабатываемой процессом
+
+    std::vector<double> x_old(N, 0.0); // Вектор предыдущих значений
+
+    for (int iter = 0; iter < MAX_ITERATIONS; ++iter) {
+        double norm = 0.0;
+
+        for (int i = local_start; i < local_end; ++i) {
+            double sigma = 0.0;
+            for (int j = 0; j < N; ++j) {
+                if (j != i)
+                    sigma += A[i][j] * x[j];
+            }
+
+            x_old[i] = x[i]; // Сохраняем старое значение
+            x[i] = (b[i] - sigma) / A[i][i]; // Обновляем значение
+            norm += std::pow(x[i] - x_old[i], 2);
+        }
+
+        // Обмен данными между процессами
+        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, x.data(), local_end - local_start, MPI_DOUBLE, MPI_COMM_WORLD);
+
+        // Считаем глобальную норму (точность)
+        double global_norm;
+        MPI_Allreduce(&norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+        // Проверка сходимости
+        if (sqrt(global_norm) < TOLERANCE) {
+            if (rank == 0)
+                std::cout << "Converged after " << iter + 1 << " iterations." << std::endl;
+            break;
+        }
+    }
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+int main(int argc, char** argv) {
+    MPI_Init(&argc, &argv);
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    int N = 4; // Размер матрицы
+    std::vector<std::vector<double>> A = {
+        {4, 1, 2, 0},
+        {3, 5, 1, 0},
+        {1, 1, 3, 1},
+        {2, 0, 1, 4}
+    };
+
+    std::vector<double> b = { 15, 28, 16, 21 };
+    std::vector<double> x(N, 0.0); // Начальное приближение
+
+    gauss_seidel_parallel(A, b, x, rank, size);
+
+    // Вывод результата
+    if (rank == 0) {
+        std::cout << "Solution: ";
+        for (int i = 0; i < N; ++i) {
+            std::cout << x[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    MPI_Finalize();
+    return 0;
+}
