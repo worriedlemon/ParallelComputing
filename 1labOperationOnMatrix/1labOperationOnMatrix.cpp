@@ -1,20 +1,80 @@
-// 1labOperationOnMatrix.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
+#include <mpi.h>
 #include <iostream>
+#include <vector>
+#include <cstdlib>
 
-int main()
-{
-    std::cout << "Hello World!\n";
+#include <time.h>
+
+void multiplyMatrices(const std::vector<int>& A, const std::vector<int>& B, std::vector<int>& C, int N, int rowsPerProcess) {
+    for (int i = 0; i < rowsPerProcess; ++i) {
+        for (int j = 0; j < N; ++j) {
+            C[i * N + j] = 0;
+            for (int k = 0; k < N; ++k) {
+                C[i * N + j] += A[i * N + k] * B[k * N + j];
+            }
+        }
+    }
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+int main(int argc, char** argv) {
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+    MPI_Init(&argc, &argv);
+
+    int N = 1; // Размер матриц NxN
+
+    while (N != 0)
+    {
+        int rank, size;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+        std::vector<int> A(N * N), B(N * N), C(N * N);
+
+        int rowsPerProcess = N / size; // количество строк на процесс
+
+        // Инициализация матриц в процессе 0
+        if (rank == 0) {
+            for (int i = 0; i < N * N; ++i) {
+                A[i] = rand() % 10; // Заполнение случайными значениями
+                B[i] = rand() % 10;
+            }
+        }
+
+        clock_t tStart = clock(); //Подсчет времени выполнения
+
+        // Передаем всем процессам матрицу B
+        MPI_Bcast(B.data(), N * N, MPI_INT, 0, MPI_COMM_WORLD);
+
+        // Выделяем память для подматрицы A и результата подматрицы C
+        std::vector<int> local_A(rowsPerProcess * N);
+        std::vector<int> local_C(rowsPerProcess * N);
+
+        // Рассылаем части матрицы A
+        MPI_Scatter(A.data(), rowsPerProcess * N, MPI_INT, local_A.data(), rowsPerProcess * N, MPI_INT, 0, MPI_COMM_WORLD);
+
+        // Умножаем подматрицу
+        multiplyMatrices(local_A, B, local_C, N, rowsPerProcess);
+
+        // Собираем результаты
+        MPI_Gather(local_C.data(), rowsPerProcess * N, MPI_INT, C.data(), rowsPerProcess * N, MPI_INT, 0, MPI_COMM_WORLD);
+
+        // Выводим результат на процесс 0
+        /*if (rank == 0) {
+            std::cout << "result matrix c:\n";
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    std::cout << c[i * n + j] << " ";
+                }
+                std::cout << std::endl;
+            }
+        }*/
+
+        printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC); //вывод времени
+
+        std::cout << "\nenter size matrix: ";
+        std::cin >> N;
+    }
+
+    MPI_Finalize();
+    return 0;
+}
