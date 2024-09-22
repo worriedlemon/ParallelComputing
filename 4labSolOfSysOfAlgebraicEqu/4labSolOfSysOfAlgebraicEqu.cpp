@@ -35,20 +35,20 @@ void gaussJordan(vector<vector<double>>& A, vector<double>& b) {
 int main() {
     // Пример использования
     int n;
-    cout << "Введите размерность системы: ";
+    cout << "enter size system: ";
     cin >> n;
 
     vector<vector<double>> A(n, vector<double>(n));
     vector<double> b(n);
 
-    cout << "Введите коэффициенты матрицы A:\n";
+    cout << "enter coeficient matrix A:\n";
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             cin >> A[i][j];
         }
     }
 
-    cout << "Введите вектор b:\n";
+    cout << "enter vector b:\n";
     for (int i = 0; i < n; i++) {
         cin >> b[i];
     }
@@ -57,7 +57,7 @@ int main() {
     gaussJordan(A, b);
 
     // Вывод результата
-    cout << "Решение системы x:\n";
+    cout << "solution system x:\n";
     for (int i = 0; i < n; i++) {
         cout << b[i] << " ";
     }
