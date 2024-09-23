@@ -3,8 +3,6 @@
 #include <vector>
 #include <cstdlib>
 
-#include <time.h>
-
 void multiplyMatrices(const std::vector<int>& A, const std::vector<int>& B, std::vector<int>& C, int N, int rowsPerProcess) {
     for (int i = 0; i < rowsPerProcess; ++i) {
         for (int j = 0; j < N; ++j) {
@@ -17,13 +15,11 @@ void multiplyMatrices(const std::vector<int>& A, const std::vector<int>& B, std:
 }
 
 int main(int argc, char** argv) {
-
     MPI_Init(&argc, &argv);
 
     int N = 1; // Размер матриц NxN
 
-    while (N != 0)
-    {
+    while (N != 0) {
         int rank, size;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -40,7 +36,8 @@ int main(int argc, char** argv) {
             }
         }
 
-        clock_t tStart = clock(); //Подсчет времени выполнения
+        // Начало замера общего времени с помощью MPI_Wtime
+        double start_time = MPI_Wtime();
 
         // Передаем всем процессам матрицу B
         MPI_Bcast(B.data(), N * N, MPI_INT, 0, MPI_COMM_WORLD);
@@ -58,21 +55,22 @@ int main(int argc, char** argv) {
         // Собираем результаты
         MPI_Gather(local_C.data(), rowsPerProcess * N, MPI_INT, C.data(), rowsPerProcess * N, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // Выводим результат на процесс 0
-        /*if (rank == 0) {
-            std::cout << "result matrix c:\n";
-            for (int i = 0; i < n; ++i) {
-                for (int j = 0; j < n; ++j) {
-                    std::cout << c[i * n + j] << " ";
-                }
-                std::cout << std::endl;
-            }
-        }*/
+        // Завершаем замер времени
+        double end_time = MPI_Wtime();
 
-        printf("Time taken: %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC); //вывод времени
+        // Выводим общее время выполнения только на процесс 0
+        if (rank == 0) {
+            std::cout << "Total time taken: " << (end_time - start_time) << " seconds\n";
+        }
 
-        std::cout << "\nenter size matrix: ";
-        std::cin >> N;
+        // Получаем новый размер матрицы от пользователя
+        if (rank == 0) {
+            std::cout << "\nEnter size matrix (0 to exit): ";
+            std::cin >> N;
+        }
+
+        // Передаем размер матрицы всем процессам
+        MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
     }
 
     MPI_Finalize();
