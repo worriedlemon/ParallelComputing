@@ -5,12 +5,18 @@
 #include <ctime>    // Для функции time()
 
 // Функция для сортировки методом вставок
-void insertionSort(std::vector<int>& arr, int start, int end) {
-    for (int i = start + 1; i <= end; i++) {
+void insertionSort(std::vector<int>& arr) {
+    int n = arr.size();
+
+    // Параллелизация с помощью OpenMP
+#pragma omp parallel for shared(arr)
+    for (int i = 1; i < n; i++) {
         int key = arr[i];
         int j = i - 1;
 
-        while (j >= start && arr[j] > key) {
+        // Сдвигаем элементы arr[0..i-1], которые больше ключа,
+        // на одну позицию вперед от их текущей позиции
+        while (j >= 0 && arr[j] > key) {
             arr[j + 1] = arr[j];
             j = j - 1;
         }
@@ -60,20 +66,8 @@ int main() {
             // Подсчет времени выполнения сортировки с использованием OpenMP
             double start_time = omp_get_wtime();
 
-            // Размер блока
-            int block_size = n / num_threads;
-
-            // Параллельная сортировка блоков
-#pragma omp parallel
-            {
-                int thread_id = omp_get_thread_num();
-                int start = thread_id * block_size;
-                int end = (thread_id == num_threads - 1) ? n - 1 : (start + block_size - 1);
-
-                insertionSort(arr, start, end);
-            }
-
-            // На данном этапе можно использовать стратегию слияния блоков для полной сортировки массива
+            // Выполняем сортировку
+            insertionSort(arr);
 
             double end_time = omp_get_wtime();
 
