@@ -97,49 +97,50 @@ int main() {
             continue;
         }
 
-        srand(static_cast<unsigned>(time(0)));
+        const int num_tests = 100;  // Количество повторений для тестирования
+        double total_time = 0.0;    // Переменная для хранения суммарного времени
 
-        std::vector<int> arr(n);
-        for (int i = 0; i < n; i++) {
-            arr[i] = rand() % (n + 1);
-        }
+        // Выполнение 100 тестов
+        for (int test = 0; test < num_tests; test++) {
+            srand(static_cast<unsigned>(time(0)));
 
-        std::cout << "Unsorted array: ";
-        for (int i = 0; i < n; i++) {
-            std::cout << arr[i] << " ";
-        }
-        std::cout << std::endl;
-
-        double start_time = omp_get_wtime();
-
-        // Определение размера блока
-        int block_size = (n + num_threads - 1) / num_threads;
-
-        // Параллельная сортировка блоков
-#pragma omp parallel
-        {
-            int thread_id = omp_get_thread_num();
-            int start = thread_id * block_size;
-            int end = std::min(start + block_size - 1, n - 1);
-
-            if (start < n) {
-                std::cout << "Thread " << thread_id << " sorting from " << start << " to " << end << std::endl;
-                insertionSort(arr, start, end);
+            std::vector<int> arr(n);
+            for (int i = 0; i < n; i++) {
+                arr[i] = rand() % (n + 1);
             }
+
+            double start_time = omp_get_wtime();
+
+            // Определение размера блока
+            int block_size = (n + num_threads - 1) / num_threads;
+
+            // Параллельная сортировка блоков
+#pragma omp parallel
+            {
+                int thread_id = omp_get_thread_num();
+                int start = thread_id * block_size;
+                int end = std::min(start + block_size - 1, n - 1);
+
+                if (start < n) {
+                    insertionSort(arr, start, end);
+                }
+            }
+
+            // Слияние отсортированных блоков
+            mergeAllBlocks(arr, num_threads, block_size);
+
+            double end_time = omp_get_wtime();
+            total_time += (end_time - start_time);  // Суммируем время каждого теста
         }
 
-        // Слияние отсортированных блоков
-        mergeAllBlocks(arr, num_threads, block_size);
+        // Вычисление среднего времени выполнения
+        double avg_time = total_time / num_tests;
 
-        double end_time = omp_get_wtime();
-
-        std::cout << "Sorted array: ";
-        for (int i = 0; i < n; i++) {
-            std::cout << arr[i] << " ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "Sorting time: " << (end_time - start_time) << " seconds" << std::endl;
+        std::cout << "Average sorting time for " << 
+            "\033[33m" << n << "\033[0m"
+            << " elements over " << num_tests << " tests: " << 
+            "\033[33m" << avg_time << "\033[0m" 
+            << " seconds" << std::endl;
     }
 
     return 0;
