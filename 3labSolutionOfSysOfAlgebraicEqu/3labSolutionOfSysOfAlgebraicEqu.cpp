@@ -45,7 +45,7 @@ void gauss_seidel_parallel(const std::vector<std::vector<double>>& A, const std:
         }
 
         // Обмен данными между процессами
-        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, x.data(), local_end - local_start, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, x.data(), N / size, MPI_DOUBLE, MPI_COMM_WORLD);
 
         // Считаем глобальную норму (точность)
         double global_norm;
@@ -87,8 +87,8 @@ int main(int argc, char** argv) {
         if (rank == 0) {
             // Генерируем случайную матрицу и вектор
             generate_random_matrix_and_vector(A, b, N);
-
-            // Вывод начальных значений (опцианально)
+             
+            // Вывод начальных значений опционально
             //std::cout << "Initial system:" << std::endl;
             //for (int i = 0; i < N; ++i) {
             //    for (int j = 0; j < N; ++j) {
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
 
         // Вывод результата
         if (rank == 0) {
-            // Выводим решение (после последнего запуска) (опцианально)
+            // Выводим решение (после последнего запуска) опционально
             //std::cout << "Solution: ";
             //for (int i = 0; i < N; ++i) {
             //    std::cout << x[i] << " ";
@@ -133,11 +133,10 @@ int main(int argc, char** argv) {
 
             // Вычисляем и выводим среднее время выполнения
             double average_time = total_time / NUM_RUNS;
-
-            std::cout << "Average execution time over " << 
-                "\033[33m" << NUM_RUNS << "\033[0m" 
+            std::cout << "Average execution time over " <<
+                "\033[33m" << NUM_RUNS << "\033[0m"
                 << " runs: " <<
-                "\033[33m" << average_time << "\033[0m" 
+                "\033[33m" << average_time << "\033[0m"
                 << " seconds." << std::endl;
         }
     }
@@ -145,3 +144,9 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
 }
+
+//std::cout << "Average execution time over " <<
+//"\033[33m" << NUM_RUNS << "\033[0m"
+//<< " runs: " <<
+//"\033[33m" << average_time << "\033[0m"
+//<< " seconds." << std::endl;
