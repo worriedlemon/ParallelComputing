@@ -144,9 +144,3 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
 }
-
-//std::cout << "Average execution time over " <<
-//"\033[33m" << NUM_RUNS << "\033[0m"
-//<< " runs: " <<
-//"\033[33m" << average_time << "\033[0m"
-//<< " seconds." << std::endl;
