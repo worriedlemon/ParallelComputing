@@ -68,11 +68,9 @@ int main(int argc, char** argv) {
     while (true) {
         int N;
 
-        if (rank == 0) {
-            // Ввод размера системы
-            std::cout << "Enter the size of the system (N), or 0 to exit: ";
-            std::cin >> N;
-        }
+        // Ввод размера системы
+        std::cout << "Enter the size of the system (N), or 0 to exit: ";
+        std::cin >> N;
 
         // Распространяем значение N на все процессы
         MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -84,19 +82,17 @@ int main(int argc, char** argv) {
         std::vector<double> b(N);
         std::vector<double> x(N, 0.0); // Начальное приближение
 
-        if (rank == 0) {
-            // Генерируем случайную матрицу и вектор
-            generate_random_matrix_and_vector(A, b, N);
-             
-            // Вывод начальных значений опционально
-            //std::cout << "Initial system:" << std::endl;
-            //for (int i = 0; i < N; ++i) {
-            //    for (int j = 0; j < N; ++j) {
-            //        std::cout << A[i][j] << " ";
-            //    }
-            //    std::cout << " | " << b[i] << std::endl;
-            //}
-        }
+        // Генерируем случайную матрицу и вектор
+        generate_random_matrix_and_vector(A, b, N);
+
+        // Вывод начальных значений опционально
+        //std::cout << "Initial system:" << std::endl;
+        //for (int i = 0; i < N; ++i) {
+        //    for (int j = 0; j < N; ++j) {
+        //        std::cout << A[i][j] << " ";
+        //    }
+        //    std::cout << " | " << b[i] << std::endl;
+        //}
 
         // Распространяем матрицу и вектор b на все процессы
         for (int i = 0; i < N; ++i) {
@@ -123,22 +119,20 @@ int main(int argc, char** argv) {
         }
 
         // Вывод результата
-        if (rank == 0) {
-            // Выводим решение (после последнего запуска) опционально
-            //std::cout << "Solution: ";
-            //for (int i = 0; i < N; ++i) {
-            //    std::cout << x[i] << " ";
-            //}
-            //std::cout << std::endl;
+        // Выводим решение (после последнего запуска) опционально
+        //std::cout << "Solution: ";
+        //for (int i = 0; i < N; ++i) {
+        //    std::cout << x[i] << " ";
+        //}
+        //std::cout << std::endl;
 
-            // Вычисляем и выводим среднее время выполнения
-            double average_time = total_time / NUM_RUNS;
-            std::cout << "Average execution time over " <<
-                "\033[33m" << NUM_RUNS << "\033[0m"
-                << " runs: " <<
-                "\033[33m" << average_time << "\033[0m"
-                << " seconds." << std::endl;
-        }
+        // Вычисляем и выводим среднее время выполнения
+        double average_time = total_time / NUM_RUNS;
+        std::cout << "Average execution time over " <<
+            "\033[33m" << NUM_RUNS << "\033[0m"
+            << " runs: " <<
+            "\033[33m" << average_time << "\033[0m"
+            << " seconds." << std::endl;
     }
 
     MPI_Finalize();
