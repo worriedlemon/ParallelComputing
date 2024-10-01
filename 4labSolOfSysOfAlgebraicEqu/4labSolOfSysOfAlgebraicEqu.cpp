@@ -3,39 +3,36 @@
 #include <cstdlib>
 #include <ctime>
 #include <omp.h>
+#include <iomanip>
 
 using namespace std;
 
 // Параметры задачи
-const int NUM_RUNS = 10; // Количество повторений
+const int NUM_RUNS = 100; // Количество повторений
 
 // Функция для решения СЛАУ методом Гаусса-Жордана с параллелизацией OpenMP
-void gaussJordanParallel(vector<vector<double>>& A, vector<double>& b, int num_threads) {
+void gaussJordan(vector<vector<double>>& A, vector<double>& b, int num_threads) {
     int n = A.size();
 
-    // Устанавливаем количество потоков для OpenMP
-    omp_set_num_threads(num_threads);
+    for (int i = 0; i < n; i++) {
+        // Нормализуем строку i по диагональному элементу
+        double diag = A[i][i];
 
-    // Прямой ход метода Гаусса
-    for (int k = 0; k < n; ++k) {
-        // Нормализуем ведущий элемент на строке
-#pragma omp parallel for
-        for (int j = k + 1; j < n; ++j) {
-            A[k][j] /= A[k][k];
+#pragma omp parallel for num_threads(num_threads)
+        for (int j = i; j < n; j++) {
+            A[i][j] /= diag;
         }
-        b[k] /= A[k][k];
-        A[k][k] = 1.0;
+        b[i] /= diag;
 
-        // Прямой ход исключения по другим строкам
-#pragma omp parallel for
-        for (int i = 0; i < n; ++i) {
-            if (i != k) {
-                double factor = A[i][k];
-                for (int j = k + 1; j < n; ++j) {
-                    A[i][j] -= factor * A[k][j];
+        // Обнуляем элементы в столбце i для всех строк, кроме строки i
+#pragma omp parallel for num_threads(num_threads)
+        for (int k = 0; k < n; k++) {
+            if (k != i) {
+                double factor = A[k][i];
+                for (int j = i; j < n; j++) {
+                    A[k][j] -= factor * A[i][j];
                 }
-                b[i] -= factor * b[k];
-                A[i][k] = 0.0;
+                b[k] -= factor * b[i];
             }
         }
     }
@@ -55,14 +52,42 @@ void displayProgress(int current, int total, double avg_time) {
     }
     cout << "] " << int(progress * 100.0) << "% ";
     cout << "Completed: " << current << "/" << total << " ";
-    cout << "Avg time: " << "\033[33m" << avg_time << "\033[0m" << " sec\r";
+    cout << "Avg time: " << avg_time << " sec\r";
     cout.flush();  // Обновляем консоль
+}
+
+// Функция для вывода данных
+void printResults(const vector<vector<double>>& A, const vector<double>& b, const vector<double>& result) {
+    int n = A.size();
+    cout << fixed << setprecision(2); // Установка формата вывода
+
+    cout << "Initial matrix A:\n";
+    for (const auto& row : A) {
+        for (double val : row) {
+            cout << setw(10) << val << "\t"; // Табуляция для лучшей читаемости
+        }
+        cout << endl;
+    }
+
+    cout << "\nInitial vector b:\n";
+    for (double val : b) {
+        cout << setw(10) << val << "\t"; // Табуляция для лучшей читаемости
+    }
+    cout << endl;
+
+    cout << "\nResult vector x:\n";
+    for (double val : result) {
+        cout << setw(10) << val << "\t"; // Табуляция для лучшей читаемости
+    }
+    cout << endl;
+
+    cout << std::resetiosflags(std::ios::fixed);
 }
 
 int main() {
     srand(time(0));  // Инициализация генератора случайных чисел
     int num_threads = 0;
-    int n = -1;
+    int N = -1;
 
     // Ввод количества процессов и обработка выхода из программы при нуле
     while (true) {
@@ -74,26 +99,35 @@ int main() {
         }
 
         // Ввод размерности системы
+
         while (true)
         {
             cout << "Enter system size (0 to re-enter number of threads): ";
-            cin >> n;
-            if (n == 0) {
+            cin >> N;
+            if (N == 0) {
                 break;  // Повторный запрос ввода количества процессов
             }
 
             // Генерация случайной системы уравнений
-            vector<vector<double>> A(n, vector<double>(n));
-            vector<double> b(n);
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
+            vector<vector<double>> A(N, vector<double>(N));
+            vector<double> b(N);
+            for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
                     A[i][j] = rand() % 100 + 1;  // Случайные числа от 1 до 100
                 }
                 b[i] = rand() % 100 + 1;
             }
 
+            // Запрос вывода данных
+            char display_choice;
+            cout << "Do you want to display initial data and results? (Y/N): ";
+            cin >> display_choice;
+            std::cout << "\033[A\033[2K";
+
             // Измерение времени выполнения с 100 повторениями
             double total_time = 0.0;
+
+            vector<double> final_result(N);
 
             for (int i = 0; i < NUM_RUNS; i++) {
                 // Создаем копии матрицы A и вектора b для каждого повторения
@@ -101,7 +135,7 @@ int main() {
                 vector<double> b_copy = b;
 
                 double start_time = omp_get_wtime();  // Время начала
-                gaussJordanParallel(A_copy, b_copy, num_threads);
+                gaussJordan(A_copy, b_copy, num_threads);
                 double end_time = omp_get_wtime();    // Время завершения
 
                 total_time += (end_time - start_time);  // Суммируем время
@@ -109,6 +143,9 @@ int main() {
                 // Отображение прогресса
                 double avg_time = total_time / (i + 1);  // Среднее время выполнения на текущий момент
                 displayProgress(i + 1, NUM_RUNS, avg_time);
+
+                // Сохраняем последний результат
+                final_result = b_copy; // После выполнения A_copy преобразуется в решение, сохраненное в b_copy
             }
 
             // Вывод окончательного результата
@@ -117,6 +154,11 @@ int main() {
                 << " runs: " <<
                 "\033[33m" << total_time / NUM_RUNS << "\033[0m"
                 << " seconds." << std::endl;
+
+            // Вывод данных, если пользователь выбрал Y
+            if (display_choice == 'Y' || display_choice == 'y') {
+                printResults(A, b, final_result);
+            }
         }
     }
 
