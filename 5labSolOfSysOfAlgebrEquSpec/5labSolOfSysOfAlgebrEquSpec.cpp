@@ -37,19 +37,13 @@ int main(int argc, char** argv) {
     while (true) {
         // Запрос размера матрицы на процессе 0
         if (rank == 0) {
-            cout << "Enter the size of the matrix (0 to exit, max size = 10000): ";
+            cout << "Enter the size of the matrix (0 to exit): ";
             cin >> n;
 
             if (n == 0) {
                 cout << "Exiting the program." << endl;
                 MPI_Finalize(); // Завершение MPI перед выходом
                 return 0;
-            }
-
-            // Ограничение на максимальный размер матрицы
-            if (n > 10000) {
-                cout << "Size exceeds maximum limit of 10000." << endl;
-                continue;
             }
 
             // Генерация случайной положительно определенной матрицы

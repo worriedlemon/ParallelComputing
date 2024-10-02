@@ -5,6 +5,9 @@
 #include <ctime>    // Для функции time()
 #include <algorithm> // Для std::min
 
+// Параметры задачи
+const int NUM_RUNS = 100; // Количество повторений
+
 // Функция для сортировки методом вставок
 // Сортирует часть массива от start до end
 void insertionSort(std::vector<int>& arr, int start, int end) {
@@ -111,11 +114,10 @@ int main() {
             continue;
         }
 
-        const int num_tests = 100;  // Количество повторений для теста
         double total_time = 0.0;    // Время всех тестов
 
         // Выполняем несколько тестов для точности замеров
-        for (int test = 0; test < num_tests; test++) {
+        for (int test = 0; test < NUM_RUNS; test++) {
             srand(static_cast<unsigned>(time(0)));  // Генерация случайного массива
 
             std::vector<int> arr(n);
@@ -152,14 +154,11 @@ int main() {
             total_time += (end_time - start_time);
         }
 
-        // Вычисляем среднее время выполнения
-        double avg_time = total_time / num_tests;
-
         // Выводим результат
         std::cout << "Average sorting time for " <<
             "\033[33m" << n << "\033[0m"
-            << " elements over " << num_tests << " tests: " <<
-            "\033[33m" << avg_time << "\033[0m"
+            << " elements over " << NUM_RUNS << " tests: " <<
+            "\033[33m" << total_time / NUM_RUNS << "\033[0m"
             << " seconds" << std::endl;
     }
 
