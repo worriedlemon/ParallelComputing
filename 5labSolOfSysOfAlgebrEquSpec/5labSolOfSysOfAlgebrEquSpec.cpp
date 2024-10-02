@@ -4,11 +4,12 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <iomanip> // Для форматирования вывода
 
 using namespace std;
 
 // Параметры задачи
-const int NUM_RUNS = 10; // Количество повторений
+const int NUM_RUNS = 100; // Количество повторений
 
 // Функция для генерации случайной симметричной положительно определённой матрицы
 vector<vector<double>> generate_positive_definite_matrix(int n) {
@@ -120,6 +121,35 @@ void displayProgress(int current, int total, double avg_time) {
     cout.flush();  // Обновляем консоль
 }
 
+// Функция для вывода матрицы
+void print_matrix(const vector<vector<double>>& matrix) {
+    for (const auto& row : matrix) {
+        for (double value : row) {
+            cout << setw(10) << fixed << setprecision(4) << value << " ";
+        }
+        cout << endl;
+    }
+}
+
+// Функция для вывода вектора
+void print_vector(const vector<double>& vec) {
+    for (double value : vec) {
+        cout << setw(10) << fixed << setprecision(4) << value << " ";
+    }
+    cout << endl;
+}
+
+// Функция для вывода начальных значений и результата
+void display_results(const vector<vector<double>>& A, const vector<double>& b, const vector<double>& x) {
+    cout << "Matrix A:\n";
+    print_matrix(A);
+    cout << "Vector b:\n";
+    print_vector(b);
+    cout << "Solution x:\n";
+    print_vector(x);
+    cout << endl;
+}
+
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
 
@@ -129,38 +159,57 @@ int main(int argc, char** argv) {
 
     srand(time(0) + rank); // Инициализация случайного генератора для каждого процесса
 
-    int n;
+    int N;
     while (true) {
         cout << "Enter the size of the matrix (0 to exit): ";
-        cin >> n;
-        if (n == 0) {
+        cin >> N;
+        if (N == 0) {
             // Сообщаем всем процессам, что нужно завершиться
             for (int p = 1; p < size; p++) {
-                MPI_Send(&n, 1, MPI_INT, p, 0, MPI_COMM_WORLD);
+                MPI_Send(&N, 1, MPI_INT, p, 0, MPI_COMM_WORLD);
             }
             break;
         }
 
+        // Запрос вывода данных
+        char display_choice;
+        cout << "Do you want to display initial data and results? (Y/N): ";
+        cin >> display_choice;
+
+        // Приведение к верхнему регистру
+        display_choice = toupper(display_choice);
+        if (display_choice != 'Y' && display_choice != 'N') {
+            cout << "Invalid input! Defaulting to 'N'." << endl;
+            display_choice = 'N';
+        }
+
+        // Рассылка информации о желании вывода всем процессам
+        MPI_Bcast(&display_choice, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
         // Рассылка размера матрицы всем процессам
-        MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         double total_time = 0;
 
-        for (int i = 0; i < NUM_RUNS; i++) {
-            vector<vector<double>> A;
-            do {
-                // Генерация случайной положительно определённой матрицы
-                A = generate_positive_definite_matrix(n);
-            } while (!is_positive_definite(A)); // Проверка на положительную определённость
+        vector<vector<double>> A;
+        do {
+            // Генерация случайной положительно определённой матрицы
+            A = generate_positive_definite_matrix(N);
+        } while (!is_positive_definite(A)); // Проверка на положительную определённость
 
-            vector<vector<double>> L(n, vector<double>(n, 0));
-            vector<double> b = generate_random_vector(n);
+        vector<vector<double>> L;
+        vector<double> b;
+
+        vector<double> final_result;
+
+        for (int i = 0; i < NUM_RUNS; i++) {
+            L = vector<vector<double>>(N, vector<double>(N, 0));
+            b = generate_random_vector(N);
 
             // Измерение времени с помощью MPI
             double start_time = MPI_Wtime();
 
             // Разложение Холецкого
-            chol_decomp(n, A, L, rank, size);
+            chol_decomp(N, A, L, rank, size);
 
             // Решение систем L * y = b и L^T * x = y
             vector<double> y = forward_substitution(L, b);
@@ -172,6 +221,9 @@ int main(int argc, char** argv) {
             // Отображение прогресса
             double avg_time = total_time / (i + 1);  // Среднее время выполнения на текущий момент
             displayProgress(i + 1, NUM_RUNS, avg_time);
+
+            // Сохраняем последний результат
+            final_result = x;
         }
 
         // Вычисление и вывод среднего времени выполнения
@@ -180,6 +232,11 @@ int main(int argc, char** argv) {
             << " runs: " <<
             "\033[33m" << total_time / NUM_RUNS << "\033[0m"
             << " seconds." << std::endl;
+
+        // Вывод начальных значений и результатов, если запрошено
+        if (display_choice == 'Y') {
+            display_results(A, b, final_result);
+        }
     }
 
     MPI_Finalize();

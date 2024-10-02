@@ -122,6 +122,13 @@ int main() {
             char display_choice;
             cout << "Do you want to display initial data and results? (Y/N): ";
             cin >> display_choice;
+
+            // ѕриведение к верхнему регистру
+            display_choice = toupper(display_choice);
+            if (display_choice != 'Y' && display_choice != 'N') {
+                cout << "Invalid input! Defaulting to 'N'." << endl;
+                display_choice = 'N';
+            }
             std::cout << "\033[A\033[2K";
 
             // »змерение времени выполнени€ с 100 повторени€ми
@@ -156,7 +163,7 @@ int main() {
                 << " seconds." << std::endl;
 
             // ¬ывод данных, если пользователь выбрал Y
-            if (display_choice == 'Y' || display_choice == 'y') {
+            if (display_choice == 'Y') {
                 printResults(A, b, final_result);
             }
         }
