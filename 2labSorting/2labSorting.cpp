@@ -109,12 +109,12 @@ int main() {
                 arr[i] = rand() % (n + 1);
             }
 
-            std::cout << std::endl;
-            std::cout << "Unsorted array: ";
-            for (int i = 0; i < n; i++) {
-                std::cout << arr[i] << " ";
-            }
-            std::cout << std::endl;
+            //std::cout << std::endl;
+            //std::cout << "Unsorted array: ";
+            //for (int i = 0; i < n; i++) {
+            //    std::cout << arr[i] << " ";
+            //}
+            //std::cout << std::endl;
 
             double start_time = omp_get_wtime();
 
@@ -138,14 +138,14 @@ int main() {
 
             double end_time = omp_get_wtime();
 
-            std::cout << std::endl;
-            std::cout << "Sorted array: ";
-            for (int i = 0; i < n; i++) {
-                std::cout << arr[i] << " ";
-            }
-            std::cout << std::endl;
-
             total_time += (end_time - start_time);  // Суммируем время каждого теста
+
+            //std::cout << std::endl;
+            //std::cout << "Sorted array: ";
+            //for (int i = 0; i < n; i++) {
+            //    std::cout << arr[i] << " ";
+            //}
+            //std::cout << std::endl;
         }
 
         // Вычисление среднего времени выполнения
