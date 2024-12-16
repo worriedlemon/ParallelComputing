@@ -1,145 +1,127 @@
 #include <iostream>
 #include <iomanip>
-#include <mpi.h>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
-#include <numeric> // Подключаем для использования inner_product
+#include <cmath>
+#include <random>
+#include <numeric>
+#include <chrono>
+#include <mpi.h>
 
 using namespace std;
 
-// Функция для разложения Холецкого
-void cholesky_decomposition(const vector<vector<double>>& A, vector<vector<double>>& L) {
-    int n = A.size();
+// Функция для вычисления разложения Холецкого для блока
+void cholesky_block(vector<vector<double>>& A, int start_row, int block_size) {
+    for (int k = 0; k < block_size; ++k) {
+        // Диагональный элемент
+        A[start_row + k][start_row + k] = sqrt(A[start_row + k][start_row + k]);
 
-    for (int j = 0; j < n; j++) {
-        // Вычисление диагонального элемента
-        double sum = (j > 0) ? inner_product(L[j].begin(), L[j].begin() + j, L[j].begin(), 0.0) : 0.0;
-        L[j][j] = sqrt(A[j][j] - sum);
+        // Ниже диагонального элемента
+        for (int i = k + 1; i < block_size; ++i) {
+            A[start_row + i][start_row + k] /= A[start_row + k][start_row + k];
+        }
 
-        for (int i = j + 1; i < n; i++) {
-            // Вычисление элемента ниже диагонали
-            double sumL = inner_product(L[i].begin(), L[i].begin() + j, L[j].begin(), 0.0);
-            L[i][j] = (A[i][j] - sumL) / L[j][j];
+        // Обновление остальной части матрицы
+        for (int j = k + 1; j < block_size; ++j) {
+            for (int i = j; i < block_size; ++i) {
+                A[start_row + i][start_row + j] -= A[start_row + i][start_row + k] * A[start_row + j][start_row + k];
+            }
         }
     }
 }
 
 int main(int argc, char** argv) {
-    MPI_Init(&argc, &argv); // Инициализация MPI
+    MPI_Init(&argc, &argv);
     int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // Получение номера процесса
-    MPI_Comm_size(MPI_COMM_WORLD, &size); // Получение общего числа процессов
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int n = 0;
-    vector<vector<double>> A;
+    int n;
 
     while (true) {
-        // Запрос размера матрицы на процессе 0
         if (rank == 0) {
             cout << "Enter the size of the matrix (0 to exit): ";
             cin >> n;
 
             if (n == 0) {
-                cout << "Exiting the program." << endl;
-                MPI_Finalize(); // Завершение MPI перед выходом
-                return 0;
-            }
-
-            // Генерация случайной положительно определенной матрицы
-            A.resize(n, vector<double>(n));
-            srand(static_cast<unsigned int>(time(0)));
-
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    A[i][j] = static_cast<double>(rand()) / RAND_MAX; // Случайные значения от 0 до 1
-                }
-            }
-
-            // Обеспечение положительной определенности матрицы
-            for (int i = 0; i < n; i++) {
-                A[i][i] += n; // Увеличиваем диагональные элементы
+                MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                break;
             }
         }
 
-        // Распространение размера матрицы среди всех процессов
         MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // Обработка случая, если n меньше количества процессов
-        if (size > n) {
-            if (rank == 0) {
-                cout << "Number of processes exceeds the size of the matrix. Adjusting number of processes." << endl;
-            }
-            size = n; // Устанавливаем количество процессов равным размеру матрицы
-            MPI_Comm_size(MPI_COMM_WORLD, &size); // Обновление количества процессов
+        if (n == 0) {
+            break;
         }
 
-        // Распределение матрицы A среди процессов
-        int rows_per_process = (n + size - 1) / size; // Количество строк на процесс (с учетом остатка)
-        vector<vector<double>> A_local(rows_per_process, vector<double>(n));
-
-        // Убедитесь, что выделяемый размер не превышает размер оригинальной матрицы
-        vector<double> flat_A(A.size() * A[0].size());
+        // Инициализация матрицы A на процессе 0
+        vector<vector<double>> A(n, vector<double>(n));
         if (rank == 0) {
+            random_device rd;
+            mt19937 gen(rd());
+            uniform_real_distribution<> dist(0.0, 1.0);
             for (int i = 0; i < n; ++i) {
                 for (int j = 0; j < n; ++j) {
-                    flat_A[i * n + j] = A[i][j];
+                    A[i][j] = dist(gen);
+                }
+                A[i][i] += n; // Для положительной определенности
+            }
+        }
+
+        // Распространение A на все процессы
+        for (int i = 0; i < n; i++)
+            MPI_Bcast(&A[i][0], n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+
+        int block_size = n / size;  // Размер блока (предполагается, что n делится на size)
+
+        auto start_time = chrono::high_resolution_clock::now();
+
+        for (int k = 0; k < size; ++k) {
+            if (rank == k) {
+                cholesky_block(A, k * block_size, block_size);
+                // Рассылка вычисленного блока
+                for (int i = 0; i < block_size; i++)
+                    MPI_Bcast(&A[k * block_size + i][0], n, MPI_DOUBLE, k, MPI_COMM_WORLD);
+
+            }
+            else {
+                // Прием вычисленного блока
+                for (int i = 0; i < block_size; i++)
+                    MPI_Bcast(&A[k * block_size + i][0], n, MPI_DOUBLE, k, MPI_COMM_WORLD);
+            }
+
+            // Обновление остальных блоков (эта часть пока не распараллелена)
+            if (rank > k) {
+                for (int i = (k + 1) * block_size; i < n; i++) {
+                    for (int j = k * block_size; j < (k + 1) * block_size; ++j) {
+                        // L_ik = (A_ik - sum(L_ij*L_kj, j=0..k-1)) / L_kk
+                        double sum = 0.0;
+                        for (int l = 0; l < block_size; l++) {
+                            sum += A[i][k * block_size + l] * A[k * block_size + j][k * block_size + l];
+
+                        }
+                        A[i][j] = (A[i][j] - sum) / A[j][j];
+                    }
                 }
             }
         }
 
-        // Распределение матрицы A среди процессов
-        MPI_Scatter(flat_A.data(), rows_per_process * n, MPI_DOUBLE, A_local.data(), rows_per_process * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        // Выполнение разложения Холецкого
-        vector<vector<double>> L_local(rows_per_process, vector<double>(n, 0.0));
-        double start_time = MPI_Wtime(); // Запуск таймера
+        auto end_time = chrono::high_resolution_clock::now();
+        chrono::duration<double> diff = end_time - start_time;
 
-        cholesky_decomposition(A_local, L_local); // Вызов функции разложения
-
-        double end_time = MPI_Wtime(); // Остановка таймера
-
-        // Сбор результатов разложения от всех процессов
-        vector<vector<double>> L(n, vector<double>(n, 0.0));
-        MPI_Gather(L_local.data(), rows_per_process * n, MPI_DOUBLE, L.data(), rows_per_process * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-        // Вывод результатов на процессе 0
         if (rank == 0) {
-            // Вычисление времени выполнения
-            double total_time = end_time - start_time;
+            cout << "Cholesky decomposition completed in " << diff.count() << " s." << endl;
 
-            // Добавляем проверку на корректность времени
-            if (total_time < 0) {
-                cout << "Warning: Negative execution time detected." << endl;
-            }
-
-            cout << "Total execution time: " << total_time << " seconds" << endl;
-
-            // Запрос на вывод исходных данных
-            char output_A, output_L;
-            cout << "Do you want to display the original matrix A? (Y/N): ";
+            // Вывод матрицы A (результат разложения)
+            char output_A;
+            cout << "Do you want to display the result (matrix A)? (Y/N): ";
             cin >> output_A;
-
-            cout << "Do you want to display the result of the decomposition (matrix L)? (Y/N): ";
-            cin >> output_L;
-
-            // Вывод исходной матрицы A, если пользователь хочет
             if (toupper(output_A) == 'Y') {
-                cout << "Original matrix A:" << endl;
-                for (const auto& row : A) {
-                    for (const auto& elem : row) {
-                        cout << setw(10) << elem << " ";
-                    }
-                    cout << endl;
-                }
-            }
-
-            // Вывод результата разложения L, если пользователь хочет
-            if (toupper(output_L) == 'Y') {
-                cout << "Result of the decomposition (matrix L):" << endl;
-                for (const auto& row : L) {
-                    for (const auto& elem : row) {
-                        cout << setw(10) << elem << " ";
+                for (int i = 0; i < n; ++i) {
+                    for (int j = 0; j < n; ++j) {
+                        cout << setw(10) << A[i][j] << " "; // Выводим A, а не L
                     }
                     cout << endl;
                 }
@@ -147,6 +129,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    MPI_Finalize(); // Завершение работы MPI
+    MPI_Finalize();
     return 0;
 }
